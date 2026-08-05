@@ -1,0 +1,19 @@
+services:
+  postgres_source:
+    image: postgres:16
+    container_name: supermarket_postgres_source
+
+    environment:
+      POSTGRES_DB: ${SOURCE_DB_NAME}
+      POSTGRES_USER: ${SOURCE_DB_USER}
+      POSTGRES_PASSWORD: ${SOURCE_DB_PASSWORD} 
+
+    ports:
+      - "${SOURCE_DB_PORT}:5432"
+
+    volumes:
+      - source_db_data:/var/lib/postgresql/data
+      - ./sql/source:/docker-entrypoint-initdb.d
+
+volumes:
+  source_db_data:
