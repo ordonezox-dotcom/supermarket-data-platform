@@ -1,0 +1,26 @@
+# variables privadas
+.env
+
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# datos generados
+data/
+*.parquet
+
+# logs
+logs/
+airflow/logs/
+
+# volumenes locales
+postgres_data/
+docker-volumes/
+
+# archivos del sistema 
+.vscode/
+.DS_Store
+Thumbs.db
+
