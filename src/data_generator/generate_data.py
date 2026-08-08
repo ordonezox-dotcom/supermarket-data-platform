@@ -4,6 +4,8 @@ from generators.sellers import generate_sellers
 from generators.stores import generate_stores
 from generators.products import generate_products
 from generators.inventory import generate_inventory
+from generators.invoices import generate_invoices
+from generators.invoice_details import generate_invoice_details
 
 
 def generate_all_data() -> None:
@@ -24,6 +26,16 @@ def generate_all_data() -> None:
             store_ids=store_ids,
             product_ids=product_ids,
         )
+        invoice_ids = generate_invoices(
+            conn=conn,
+            customer_ids=customer_ids,
+            store_ids=store_ids,
+        )
+
+        detail_count = generate_invoice_details(
+            conn=conn,
+            invoice_ids=invoice_ids,
+        )
 
     print("\nGeneración finalizada.")
     print(f"Sucursales disponibles: {len(store_ids)}")
@@ -31,6 +43,9 @@ def generate_all_data() -> None:
     print(f"Clientes disponibles: {len(customer_ids)}")
     print(f"Productos disponibles: "f"{len(product_ids)}")
     print(f"Registros de inventario: "f"{inventory_count}")
+    print(f"registors de facturas: "f"{invoice_ids}")
+    print(f"Detalles de factura: "f"{detail_count}"
+)
 
 
 if __name__ == "__main__":
