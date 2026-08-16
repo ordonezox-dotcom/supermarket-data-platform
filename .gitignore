@@ -24,3 +24,12 @@ docker-volumes/
 .DS_Store
 Thumbs.db
 
+# Data Lake files
+data/bronze/*
+data/silver/*
+data/gold/*
+
+# Keep directory structure
+!data/bronze/.gitkeep
+!data/silver/.gitkeep
+!data/gold/.gitkeep

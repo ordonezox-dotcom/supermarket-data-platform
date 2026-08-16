@@ -15,5 +15,63 @@ services:
       - source_db_data:/var/lib/postgresql/data
       - ./sql/source:/docker-entrypoint-initdb.d
 
+  spark-master:
+    build:
+      context: .
+      dockerfile: docker/spark/Dockerfile
+
+    image: supermarket-spark:3.5.1
+
+    container_name: supermarket_spark_master
+
+    command: >
+      /opt/spark/bin/spark-class
+      org.apache.spark.deploy.master.Master
+
+    environment:
+      SPARK_SOURCE_DB_HOST: ${SPARK_SOURCE_DB_HOST}
+      SPARK_SOURCE_DB_PORT: ${SPARK_SOURCE_DB_PORT}
+      SPARK_SOURCE_DB_NAME: ${SPARK_SOURCE_DB_NAME}
+      SPARK_SOURCE_DB_USER: ${SPARK_SOURCE_DB_USER}
+      SPARK_SOURCE_DB_PASSWORD: ${SPARK_SOURCE_DB_PASSWORD}
+
+    ports:
+      - "8081:8080"
+      - "7077:7077"
+    volumes:
+      - ./data:/opt/spark-data
+      - ./src:/opt/spark-apps
+      - spark_ivy:/home/spark/.ivy2
+
+  spark-worker:
+    build:
+      context: .
+      dockerfile: docker/spark/Dockerfile
+
+    image: supermarket-spark:3.5.1
+    
+    container_name: supermarket_spark_worker
+    command: >
+      /opt/spark/bin/spark-class
+      org.apache.spark.deploy.worker.Worker
+      spark://spark-master:7077
+
+    environment:
+      SPARK_SOURCE_DB_HOST: ${SPARK_SOURCE_DB_HOST}
+      SPARK_SOURCE_DB_PORT: ${SPARK_SOURCE_DB_PORT}
+      SPARK_SOURCE_DB_NAME: ${SPARK_SOURCE_DB_NAME}
+      SPARK_SOURCE_DB_USER: ${SPARK_SOURCE_DB_USER}
+      SPARK_SOURCE_DB_PASSWORD: ${SPARK_SOURCE_DB_PASSWORD}
+
+    depends_on:
+      - spark-master
+    ports:
+      - "8082:8081"
+    volumes:
+      - ./data:/opt/spark-data
+      - ./src:/opt/spark-apps
+      - spark_ivy:/home/spark/.ivy2
+
 volumes:
   source_db_data:
+  spark_ivy:
