@@ -1,19 +1,5 @@
-import os
-import sys
 
 from pyspark.sql import functions as F
-
-
-CURRENT_DIR = os.path.dirname(
-    os.path.abspath(__file__)
-)
-
-GOLD_DIR = os.path.dirname(
-    CURRENT_DIR
-)
-
-if GOLD_DIR not in sys.path:
-    sys.path.append(GOLD_DIR)
 
 
 from common import create_spark_session
