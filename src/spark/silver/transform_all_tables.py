@@ -32,38 +32,61 @@ from transformations.vendedores import (
 
 
 TABLE_CONFIG = {
+
+    # ========================================================
+    # CARGA INCREMENTAL
+    # ========================================================
+
     "clientes": {
+        "strategy": "incremental",
         "cursor_column": "updated_at",
+        "key_column": None,
         "transform": transform_clientes,
     },
 
     "productos": {
+        "strategy": "incremental",
         "cursor_column": "updated_at",
+        "key_column": None,
         "transform": transform_productos,
     },
 
     "inventario": {
+        "strategy": "incremental",
         "cursor_column": "fecha_actualizacion",
+        "key_column": None,
         "transform": transform_inventario,
     },
 
     "facturas": {
+        "strategy": "incremental",
         "cursor_column": "factura_id",
+        "key_column": None,
         "transform": transform_facturas,
     },
 
     "detalles_factura": {
+        "strategy": "incremental",
         "cursor_column": "detalle_id",
+        "key_column": None,
         "transform": transform_detalle_factura,
     },
 
+    # ========================================================
+    # FULL SNAPSHOT + CHANGE DETECTION
+    # ========================================================
+
     "sucursales": {
-        "cursor_column": "sucursal_id",
+        "strategy": "snapshot_compare",
+        "cursor_column": None,
+        "key_column": "sucursal_id",
         "transform": transform_sucursales,
     },
 
     "vendedores": {
-        "cursor_column": "vendedor_id",
+        "strategy": "snapshot_compare",
+        "cursor_column": None,
+        "key_column": "vendedor_id",
         "transform": transform_vendedores,
     },
 }
@@ -116,12 +139,29 @@ def transform_all_tables():
 
             process_table(
                 spark=spark,
-                table_name=table_name,
+
+                table_name=(
+                    table_name
+                ),
+
+                strategy=(
+                    config[
+                        "strategy"
+                    ]
+                ),
+
                 cursor_column=(
                     config[
                         "cursor_column"
                     ]
                 ),
+
+                key_column=(
+                    config[
+                        "key_column"
+                    ]
+                ),
+
                 transform_function=(
                     config[
                         "transform"
