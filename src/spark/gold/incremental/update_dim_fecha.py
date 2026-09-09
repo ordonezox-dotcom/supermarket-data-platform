@@ -34,7 +34,7 @@ def update_dim_fecha():
         )
 
         # ====================================================
-        # 2. LEER DIM_FECHA ACTUAL
+        # 2. LEER DIM_FECHA GOLD
         # ====================================================
 
         print("Leyendo dim_fecha Gold...")
@@ -51,31 +51,23 @@ def update_dim_fecha():
 
         fechas_silver = (
             facturas
-
             .select(
                 F.to_date(
                     "fecha_hora"
                 ).alias("fecha")
             )
-
             .filter(
                 F.col("fecha").isNotNull()
             )
-
             .distinct()
         )
 
         # ====================================================
-        # 4. IDENTIFICAR FECHAS QUE NO EXISTEN EN GOLD
-        #
-        # left_anti:
-        # devuelve únicamente las fechas de Silver que
-        # todavía no tienen correspondencia en dim_fecha.
+        # 4. IDENTIFICAR FECHAS NUEVAS
         # ====================================================
 
         nuevas_fechas = (
             fechas_silver.alias("s")
-
             .join(
                 dim_fecha
                 .select("fecha")
@@ -89,9 +81,7 @@ def update_dim_fecha():
             )
         )
 
-        total_nuevas = (
-            nuevas_fechas.count()
-        )
+        total_nuevas = nuevas_fechas.count()
 
         print(
             f"\nFechas nuevas encontradas: "
@@ -99,7 +89,11 @@ def update_dim_fecha():
         )
 
         # ====================================================
-        # 5. CONSTRUIR ATRIBUTOS DE DIM_FECHA
+        # 5. CONSTRUIR NUEVAS FILAS
+        #
+        # IMPORTANTE:
+        # Debe utilizar EXACTAMENTE el mismo esquema y lógica
+        # que build_dim_fecha.py.
         # ====================================================
 
         if total_nuevas > 0:
@@ -111,18 +105,30 @@ def update_dim_fecha():
             nuevas_filas = (
                 nuevas_fechas
 
-                # YYYYMMDD
+                # --------------------------------------------
+                # Surrogate key determinística YYYYMMDD
+                # --------------------------------------------
+
                 .withColumn(
                     "fecha_sk",
                     F.date_format(
-                        F.col("fecha"),
+                        "fecha",
                         "yyyyMMdd"
                     ).cast("int")
                 )
 
+                # --------------------------------------------
+                # Atributos calendario
+                # --------------------------------------------
+
                 .withColumn(
                     "anio",
                     F.year("fecha")
+                )
+
+                .withColumn(
+                    "trimestre",
+                    F.quarter("fecha")
                 )
 
                 .withColumn(
@@ -136,140 +142,125 @@ def update_dim_fecha():
                 )
 
                 .withColumn(
-                    "trimestre",
-                    F.quarter("fecha")
-                )
-
-                .withColumn(
-                    "semana_anio",
-                    F.weekofyear("fecha")
-                )
-
-                .withColumn(
-                    "dia_semana_numero",
+                    "dia_semana",
                     F.dayofweek("fecha")
-                )
-
-                # Spark:
-                # 1 = domingo
-                # 2 = lunes
-                # ...
-                # 7 = sábado
-
-                .withColumn(
-                    "nombre_dia",
-                    F.when(
-                        F.dayofweek("fecha") == 1,
-                        "Domingo"
-                    )
-                    .when(
-                        F.dayofweek("fecha") == 2,
-                        "Lunes"
-                    )
-                    .when(
-                        F.dayofweek("fecha") == 3,
-                        "Martes"
-                    )
-                    .when(
-                        F.dayofweek("fecha") == 4,
-                        "Miércoles"
-                    )
-                    .when(
-                        F.dayofweek("fecha") == 5,
-                        "Jueves"
-                    )
-                    .when(
-                        F.dayofweek("fecha") == 6,
-                        "Viernes"
-                    )
-                    .when(
-                        F.dayofweek("fecha") == 7,
-                        "Sábado"
-                    )
-                )
-
-                .withColumn(
-                    "nombre_mes",
-                    F.when(
-                        F.month("fecha") == 1,
-                        "Enero"
-                    )
-                    .when(
-                        F.month("fecha") == 2,
-                        "Febrero"
-                    )
-                    .when(
-                        F.month("fecha") == 3,
-                        "Marzo"
-                    )
-                    .when(
-                        F.month("fecha") == 4,
-                        "Abril"
-                    )
-                    .when(
-                        F.month("fecha") == 5,
-                        "Mayo"
-                    )
-                    .when(
-                        F.month("fecha") == 6,
-                        "Junio"
-                    )
-                    .when(
-                        F.month("fecha") == 7,
-                        "Julio"
-                    )
-                    .when(
-                        F.month("fecha") == 8,
-                        "Agosto"
-                    )
-                    .when(
-                        F.month("fecha") == 9,
-                        "Septiembre"
-                    )
-                    .when(
-                        F.month("fecha") == 10,
-                        "Octubre"
-                    )
-                    .when(
-                        F.month("fecha") == 11,
-                        "Noviembre"
-                    )
-                    .when(
-                        F.month("fecha") == 12,
-                        "Diciembre"
-                    )
-                )
-
-                .withColumn(
-                    "es_fin_semana",
-                    F.dayofweek("fecha")
-                    .isin(1, 7)
                 )
             )
 
             # =================================================
-            # IMPORTANTE
-            #
-            # Aquí seleccionamos exactamente las columnas que
-            # ya existen en dim_fecha.
-            #
-            # Así evitamos alterar el esquema Gold.
+            # NOMBRE DEL MES
             # =================================================
 
-            columnas_gold = (
-                dim_fecha.columns
+            meses = F.create_map(
+                F.lit(1), F.lit("ENERO"),
+                F.lit(2), F.lit("FEBRERO"),
+                F.lit(3), F.lit("MARZO"),
+                F.lit(4), F.lit("ABRIL"),
+                F.lit(5), F.lit("MAYO"),
+                F.lit(6), F.lit("JUNIO"),
+                F.lit(7), F.lit("JULIO"),
+                F.lit(8), F.lit("AGOSTO"),
+                F.lit(9), F.lit("SEPTIEMBRE"),
+                F.lit(10), F.lit("OCTUBRE"),
+                F.lit(11), F.lit("NOVIEMBRE"),
+                F.lit(12), F.lit("DICIEMBRE"),
             )
 
             nuevas_filas = (
                 nuevas_filas
-                .select(
-                    *columnas_gold
+                .withColumn(
+                    "nombre_mes",
+                    meses[
+                        F.col("mes")
+                    ]
                 )
             )
 
             # =================================================
+            # NOMBRE DEL DÍA
+            # =================================================
+
+            dias = F.create_map(
+                F.lit(1), F.lit("DOMINGO"),
+                F.lit(2), F.lit("LUNES"),
+                F.lit(3), F.lit("MARTES"),
+                F.lit(4), F.lit("MIERCOLES"),
+                F.lit(5), F.lit("JUEVES"),
+                F.lit(6), F.lit("VIERNES"),
+                F.lit(7), F.lit("SABADO"),
+            )
+
+            nuevas_filas = (
+                nuevas_filas
+                .withColumn(
+                    "nombre_dia",
+                    dias[
+                        F.col("dia_semana")
+                    ]
+                )
+            )
+
+            # =================================================
+            # FIN DE SEMANA
+            # =================================================
+
+            nuevas_filas = (
+                nuevas_filas
+                .withColumn(
+                    "es_fin_semana",
+                    F.col(
+                        "dia_semana"
+                    ).isin(
+                        1,
+                        7,
+                    )
+                )
+            )
+
+            # =================================================
+            # ESQUEMA FINAL
+            #
+            # Exactamente igual al initial load.
+            # =================================================
+
+            nuevas_filas = (
+                nuevas_filas
+                .select(
+                    "fecha_sk",
+                    "fecha",
+                    "anio",
+                    "trimestre",
+                    "mes",
+                    "nombre_mes",
+                    "dia",
+                    "dia_semana",
+                    "nombre_dia",
+                    "es_fin_semana",
+                )
+            )
+
+            # =================================================
+            # VALIDAR ESQUEMA CONTRA GOLD
+            # =================================================
+
+            if nuevas_filas.columns != dim_fecha.columns:
+
+                raise ValueError(
+                    "El esquema generado por "
+                    "update_dim_fecha no coincide "
+                    "con dim_fecha Gold.\n"
+                    f"Nuevo: {nuevas_filas.columns}\n"
+                    f"Gold:  {dim_fecha.columns}"
+                )
+
+            # =================================================
             # 6. INSERTAR
             # =================================================
+
+            print(
+                f"\nInsertando "
+                f"{total_nuevas} fechas nuevas..."
+            )
 
             (
                 nuevas_filas.write
@@ -292,19 +283,17 @@ def update_dim_fecha():
             .load(GOLD_PATH)
         )
 
-        # fecha_sk no puede repetirse
+        # ----------------------------------------------------
+        # fecha_sk única
+        # ----------------------------------------------------
 
         duplicate_sk = (
             dim_final
-
             .groupBy("fecha_sk")
-
             .count()
-
             .filter(
                 F.col("count") > 1
             )
-
             .count()
         )
 
@@ -314,19 +303,17 @@ def update_dim_fecha():
                 "Se detectaron fecha_sk duplicadas."
             )
 
-        # fecha tampoco puede repetirse
+        # ----------------------------------------------------
+        # fecha única
+        # ----------------------------------------------------
 
         duplicate_fecha = (
             dim_final
-
             .groupBy("fecha")
-
             .count()
-
             .filter(
                 F.col("count") > 1
             )
-
             .count()
         )
 
@@ -337,12 +324,12 @@ def update_dim_fecha():
                 "en dim_fecha."
             )
 
-        # Todas las fechas presentes en las facturas deben
-        # poder encontrarse en Gold.
+        # ----------------------------------------------------
+        # Todas las fechas Silver deben existir en Gold
+        # ----------------------------------------------------
 
         fechas_sin_dimension = (
             fechas_silver.alias("s")
-
             .join(
                 dim_final
                 .select("fecha")
@@ -354,16 +341,16 @@ def update_dim_fecha():
 
                 "left_anti",
             )
-
             .count()
         )
 
         if fechas_sin_dimension > 0:
 
             raise ValueError(
-                f"Existen {fechas_sin_dimension} fechas "
-                "de facturas sin correspondencia "
-                "en dim_fecha."
+                f"Existen "
+                f"{fechas_sin_dimension} fechas "
+                f"de facturas sin correspondencia "
+                f"en dim_fecha."
             )
 
         # ====================================================
@@ -390,11 +377,9 @@ def update_dim_fecha():
 
         (
             dim_final
-
             .orderBy(
                 F.col("fecha").desc()
             )
-
             .show(
                 20,
                 False

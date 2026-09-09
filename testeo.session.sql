@@ -1,15 +1,12 @@
 SELECT
-    cliente_id,
-    tipo_documento,
-    numero_documento,
-    nombre,
-    apellido,
-    correo,
-    telefono,
-    ciudad,
-    fecha_nacimiento,
-    fecha_registro,
-    activo,
-    updated_at
-FROM clientes
-WHERE cliente_id = 2;
+    detalle_id,
+    factura_id,
+    producto_id,
+    cantidad,
+    precio_unitario,
+    descuento_unitario,
+    impuesto_unitario,
+    total_linea
+FROM detalles_factura
+WHERE factura_id IN (49, 50)
+ORDER BY factura_id, detalle_id;
