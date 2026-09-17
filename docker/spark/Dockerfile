@@ -30,5 +30,8 @@ RUN chown spark:spark \
     /opt/spark/jars/postgresql-${POSTGRES_JDBC_VERSION}.jar \
     /opt/spark/jars/delta-spark_2.12-${DELTA_VERSION}.jar \
     /opt/spark/jars/delta-storage-${DELTA_VERSION}.jar
+    
+ #solucion de permisos 
+RUN usermod -aG 0 spark
 
 USER spark
