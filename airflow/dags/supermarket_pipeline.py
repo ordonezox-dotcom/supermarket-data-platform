@@ -1,14 +1,27 @@
 from datetime import datetime
-
+import pendulum
 from airflow import DAG
 from airflow.providers.apache.spark.operators.spark_submit import SparkSubmitOperator
 
 
+# ============================================================
+# ZONA HORARIA
+# ============================================================
+
+TIMEZONE = pendulum.timezone("America/Bogota")
+
 with DAG(
     dag_id="supermarket_pipeline",
     description="Pipeline ETL del supermercado: Bronze -> Silver -> Gold",
-    start_date=datetime(2026, 9, 1),
-    schedule=None,
+    start_date=pendulum.datetime(
+        2026,
+        9,
+        1,
+        2,
+        0,
+        tz=TIMEZONE,
+    ),
+    schedule="0 2 * * *",
     catchup=False,
     tags=["supermarket", "spark", "etl"],
 ) as dag:
