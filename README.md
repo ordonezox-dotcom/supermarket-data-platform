@@ -1,216 +1,257 @@
-# Supermarket Data Platform
+Supermarket Data Platform
 
-End-to-end Data Engineering project that simulates a supermarket data platform.
+End-to-end Data Engineering portfolio project that simulates a
+supermarket data platform.
 
-The project implements a Lakehouse-style architecture using PostgreSQL, Apache Spark, Delta Lake and Docker, following a Medallion Architecture with Bronze, Silver and Gold layers.
+The project implements a Lakehouse-style architecture with PostgreSQL,
+Apache Spark, PySpark, Delta Lake, Docker and Apache Airflow. It follows
+a Medallion Architecture (Bronze, Silver and Gold) and includes
+incremental processing, dimensional modeling, historical tracking and
+data quality controls.
 
-The main goal is to build a reproducible data platform capable of extracting operational supermarket data, processing it incrementally, preserving historical changes, applying data quality rules and transforming the data into a dimensional model optimized for analytics.
+The repository is developed step by step so the architecture can be
+understood and reproduced. The project is functional and will continue
+receiving improvements as development advances.
 
----
+Project Status
 
-## Project Status
+Current stage: Functional end-to-end pipeline orchestrated with Apache
+Airflow
 
-**Current stage: Gold Layer - Dimensional Modeling**
+Implemented
 
-### Completed
+PostgreSQL 16 operational source database.
 
-- PostgreSQL operational source database
-- Synthetic supermarket dataset generation
-- Dockerized development environment
-- Apache Spark Master and Worker
-- PostgreSQL JDBC integration with Spark
-- Delta Lake integration
-- Bronze Layer
-- Incremental source-to-Bronze ingestion
-- Bronze Delta tables with transaction history
-- Silver Layer
-- Incremental Bronze-to-Silver processing
-- Data cleaning and normalization
-- Basic data quality validations
-- Exact technical duplicate removal
-- Historical source versions preserved in Silver
-- Gold dimensional model designed
-- SCD Type 1 / Type 2 strategy defined
-- Fact table grain defined
-- Data quality strategy for invoice reconciliation defined
+Synthetic supermarket data generation.
 
-### In Progress
+Dockerized and reproducible development environment.
 
-- Gold Layer implementation
-- Surrogate key generation
-- Slowly Changing Dimensions
-- Gold fact table
-- Gold data quality and quarantine
+Spark Standalone cluster with Master and Worker.
 
-### Planned
+PostgreSQL JDBC integration with Spark.
 
-- Automated data quality checks
-- Quarantine datasets
-- Apache Airflow orchestration
-- Pipeline retries and dependency management
-- End-to-end pipeline execution
-- Analytics / dashboard layer
-- Monitoring and logging improvements
-- Final technical documentation
+Delta Lake storage.
 
----
+Bronze, Silver and Gold layers.
 
-## Architecture
+Incremental ingestion and processing.
 
-The platform follows a Medallion Architecture:
+Data cleaning, normalization and technical deduplication.
 
-```text
-Operational PostgreSQL
-        |
-        v
-   Apache Spark
-        |
-        v
-+----------------+
-|     BRONZE     |
-|   Delta Lake   |
-| Raw / History  |
-+----------------+
-        |
-        v
-   Apache Spark
-        |
-        v
-+----------------+
-|     SILVER     |
-|   Delta Lake   |
-| Clean / Valid  |
-+----------------+
-        |
-        v
-   Apache Spark
-        |
-        v
-+----------------+
-|      GOLD      |
-| Dimensional    |
-|     Model      |
-+----------------+
-        |
-        v
-Analytics / BI
-```
+Historical source-version preservation.
 
-Apache Airflow will later orchestrate the complete pipeline.
+Dimensional sales model.
 
----
+Surrogate keys.
 
-## Technology Stack
+SCD Type 1 and Type 2 dimensions.
 
-| Technology | Purpose |
-|---|---|
-| PostgreSQL 16 | Operational source database |
-| Apache Spark 3.5.1 | Distributed data processing |
-| PySpark | Data extraction and transformation |
-| Delta Lake | ACID tables, versioning and Lakehouse storage |
-| Docker | Reproducible execution environment |
-| Docker Compose | Multi-container infrastructure |
-| Python | Data generation and processing |
-| Git / GitHub | Version control and project documentation |
-| Apache Airflow | Pipeline orchestration - planned |
+Incremental Gold processing.
 
----
+Invoice reconciliation and Quarantine dataset.
 
-# Data Flow
+Apache Airflow orchestration.
 
-The current pipeline follows:
+Spark connection configured in Airflow.
 
-```text
+End-to-end task dependencies.
+
+Daily automatic execution at 02:00 using America/Bogota.
+
+End-to-end execution successfully validated.
+
+Improvements planned
+
+The project will continue evolving. Current improvement areas include:
+
+Pipeline retries and failure handling.
+
+Alerts and monitoring improvements.
+
+Performance and resource optimization.
+
+Improve Quarantine behavior so invalid invoices are explicitly
+excluded from Gold until corrected.
+
+Analytics / dashboard layer.
+
+Final documentation refinements.
+
+Current Quarantine behavior: invalid invoices are detected and
+recorded in Quarantine, but fact_ventas does not yet explicitly
+exclude every quarantined invoice. This is a known improvement and is
+not presented as completed functionality.
+
+Architecture
+
+                    +----------------------+
+                    | PostgreSQL Source    |
+                    | Operational Database |
+                    +----------+-----------+
+                               |
+                               | Spark extraction
+                               v
+                    +----------------------+
+                    | BRONZE - Delta Lake  |
+                    | Raw / History        |
+                    +----------+-----------+
+                               |
+                               | Spark transformation
+                               v
+                    +----------------------+
+                    | SILVER - Delta Lake  |
+                    | Clean / Standardized |
+                    +----------+-----------+
+                               |
+                               | Spark dimensional processing
+                               v
+              +------------------------------------+
+              | Data Quality / Invoice Validation  |
+              +----------------+-------------------+
+                               |
+                  +------------+-------------+
+                  |                          |
+                  v                          v
+        +------------------+       +------------------+
+        | GOLD             |       | QUARANTINE       |
+        | Dimensional Model|       | Invalid invoices |
+        +------------------+       +------------------+
+
+                  Apache Airflow
+                        |
+                        | orchestrates
+                        v
+        Bronze -> Silver -> Gold / Quality tasks
+
+Airflow launches Spark applications through SparkSubmitOperator. Spark
+runs in Standalone mode using a Master and Worker container. The current
+environment simulates the distributed architecture on one physical
+machine.
+
+Technology Stack
+
+Technology                          Purpose
+
+PostgreSQL 16                       Operational source database and
+Airflow metadata database
+
+Apache Spark 3.5.3                  Distributed data processing
+
+PySpark 3.5.3                       Spark transformations
+
+Delta Lake 3.3.2                    ACID storage and table versioning
+
+Apache Airflow 2.10.5               Pipeline orchestration and
+scheduling
+
+Airflow Spark Provider 5.2.1        SparkSubmitOperator integration
+
+PostgreSQL JDBC 42.7.7              Spark/PostgreSQL connectivity
+
+Java 17                             Spark runtime
+
+Docker                              Reproducible execution environment
+
+Docker Compose                      Multi-container infrastructure
+
+Python                              Data generation and processing
+
+Data Flow
+
 PostgreSQL
     |
-    | Incremental extraction
+    | incremental extraction / full reload by table
     v
-BRONZE
+BRONZE - Delta
     |
-    | Cleaning
-    | Normalization
-    | Validation
-    | Technical deduplication
+    | cleaning
+    | normalization
+    | validation
+    | technical deduplication
+    | incremental processing
     v
-SILVER
+SILVER - Delta
     |
-    | Dimensional transformations
-    | Surrogate keys
+    | dimensional transformations
+    | surrogate keys
     | SCD Type 1 / Type 2
-    | Business quality rules
     v
-GOLD
+GOLD - Delta
     |
-    v
-Analytics
-```
+    +--> Dimensions
+    |
+    +--> Invoice quality validation
+            |
+            +--> Quarantine
+    |
+    +--> fact_ventas
 
----
+Bronze Layer
 
-# Bronze Layer
+Bronze stores source data in Delta Lake while preserving source-level
+history.
 
-Bronze stores source data using Delta Lake while preserving source-level history.
+The extraction strategy depends on the source table:
 
-Different incremental strategies are used depending on the characteristics of each source table.
+Incremental extraction using increasing IDs.
 
-Examples include:
+Incremental extraction using source update timestamps.
 
-- Incremental extraction using increasing IDs
-- Incremental extraction using `updated_at`
-- Full reload for small tables where appropriate
+Full reload for small tables where appropriate.
 
-Bronze intentionally preserves multiple source versions when records are updated.
+Current examples:
 
-This allows downstream layers to determine how historical changes should be interpreted.
+clientes: incremental by updated_at.
 
----
+productos: incremental by updated_at.
 
-# Silver Layer
+inventario: incremental by fecha_actualizacion.
 
-Silver transforms Bronze data into validated and standardized datasets.
+facturas: incremental by factura_id.
 
-Current transformations include:
+detalles_factura: incremental by detalle_id.
 
-- Required-field validation
-- Null validation
-- Text normalization
-- Email format validation
-- Numeric range validation
-- Technical duplicate removal
-- Incremental processing
-- Preservation of meaningful source versions
+sucursales: full reload.
 
-Silver does not apply dimensional SCD logic.
+vendedores: full reload.
 
-Historical versions are preserved so the Gold layer can determine whether changes should be treated as SCD Type 1 or SCD Type 2.
+Silver Layer
 
----
+Silver transforms Bronze data into cleaner and standardized datasets.
 
-# Gold Layer
+Implemented transformations include:
 
-Gold transforms Silver datasets into a dimensional model optimized for analytical workloads.
+Required-field and null validation.
 
-The main business process modeled is:
+Text normalization.
 
-> **Supermarket product sales**
+Email format validation.
 
-The dimensional model follows a star-schema-oriented design.
+Numeric range validation.
 
----
+Technical duplicate removal.
 
-## Gold Star Schema
+Incremental processing.
 
-![Gold Star Schema](docs/data-model/esquema_estrella_ventas_vector.png)
+Preservation of meaningful source versions.
 
-The central fact table is:
+Silver does not apply dimensional SCD logic. Historical versions are
+preserved so Gold can determine how changes should be modeled.
 
-```text
-fact_ventas
-```
+Gold Layer
 
-Dimensions:
+Gold contains the dimensional sales model.
 
-```text
+The modeled business process is:
+
+Supermarket product sales
+
+The grain of fact_ventas is:
+
+One row represents one product line within one invoice.
+
+Dimensions
+
 dim_cliente
 dim_producto
 dim_sucursal
@@ -218,41 +259,20 @@ dim_vendedor
 dim_fecha
 dim_hora
 dim_contexto_venta
-```
 
----
+dim_contexto_venta follows the junk-dimension pattern for small
+transaction categories such as payment method and status.
 
-# Fact Table Grain
+numero_factura is stored directly in fact_ventas as a degenerate
+dimension.
 
-The grain of `fact_ventas` is:
+Fact table
 
-> **One row represents one product line within one invoice.**
+fact_ventas
 
-For example:
-
-```text
-Invoice FAC-001
-
-Product A x2
-Product B x1
-Product C x3
-```
-
-produces three rows in `fact_ventas`.
-
-Maintaining atomic transaction grain allows sales to be aggregated across products, customers, stores, employees and time.
-
----
-
-# fact_ventas
-
-The planned structure is:
-
-```text
 venta_sk
-
+detalle_id
 numero_factura
-
 cliente_sk
 producto_sk
 sucursal_sk
@@ -260,400 +280,342 @@ vendedor_sk
 fecha_sk
 hora_sk
 contexto_venta_sk
-
 cantidad
 precio_unitario
-
 subtotal_linea
 descuento_linea
 impuesto_linea
 total_linea
-```
 
-`numero_factura` is modeled as a **degenerate dimension** and is stored directly in the fact table.
+Slowly Changing Dimensions
 
----
+The Gold layer implements SCD Type 1 and Type 2 according to the
+business meaning of each attribute.
 
-# Line-Level Measures
-
-Invoice-level amounts are not duplicated across product lines.
-
-Instead, measures are calculated at the grain of the fact table:
-
-```text
-subtotal_linea
-descuento_linea
-impuesto_linea
-total_linea
-```
-
-For example:
-
-```text
-subtotal_linea =
-cantidad * precio_unitario
-
-descuento_linea =
-cantidad * descuento_unitario
-
-impuesto_linea =
-cantidad * impuesto_unitario
-```
-
-Invoice totals can then be reconstructed using aggregation:
-
-```text
-SUM(subtotal_linea)
-SUM(descuento_linea)
-SUM(impuesto_linea)
-SUM(total_linea)
-```
-
-This allows the same measures to be analyzed by:
-
-- Invoice
-- Product
-- Customer
-- Store
-- Employee
-- Date
-- Time
-- Payment context
-
----
-
-# Invoice Reconciliation and Data Quality
-
-Before publishing sales into Gold, line-level calculated amounts will be compared with the original invoice totals stored in Silver.
-
-Conceptually:
-
-```text
-Silver facturas
-       |
-       | invoice totals
-       |
-       v
-    Validation
-       ^
-       |
-SUM(Silver detalle_factura)
-```
-
-Expected validation:
-
-```text
-SUM(subtotal_linea)  == facturas.subtotal
-
-SUM(descuento_linea) == facturas.descuento_total
-
-SUM(impuesto_linea)  == facturas.impuesto_total
-
-SUM(total_linea)     == facturas.total
-```
-
-Valid invoices:
-
-```text
-Validation
-    |
-    v
-Gold fact_ventas
-```
-
-Invalid invoices:
-
-```text
-Validation
-    |
-    v
-Quarantine
-```
-
-Quarantine preserves rejected records together with the reason for rejection so data quality problems can be investigated instead of silently deleting data.
-
----
-
-# Slowly Changing Dimensions
-
-The Gold layer will implement a combination of SCD Type 1 and SCD Type 2.
-
-## dim_cliente
+dim_cliente
 
 SCD Type 2:
 
-```text
 ciudad
-```
 
 Other mutable descriptive attributes are handled as SCD Type 1.
 
----
-
-## dim_producto
+dim_producto
 
 SCD Type 2:
 
-```text
 categoria
 subcategoria
 marca
 precio_venta
 costo_unitario
-```
 
 Other descriptive attributes use SCD Type 1.
 
----
-
-## dim_sucursal
+dim_sucursal
 
 SCD Type 2:
 
-```text
 ciudad
 direccion
-```
 
 Other descriptive attributes use SCD Type 1.
 
----
-
-## dim_vendedor
+dim_vendedor
 
 SCD Type 2:
 
-```text
 sucursal_id
-```
 
 Other descriptive attributes use SCD Type 1.
 
----
+SCD Type 2 dimensions use technical columns such as:
 
-# SCD Technical Columns
-
-Dimensions implementing SCD Type 2 use:
-
-```text
 fecha_inicio
 fecha_fin
 es_actual
 source_updated_at
-```
 
-Example:
+A new surrogate key is generated when a historical SCD Type 2 version is
+created.
 
-```text
-cliente_sk | cliente_id | ciudad   | fecha_inicio | fecha_fin | es_actual
------------|------------|----------|--------------|-----------|----------
-10         | 2          | Medellín | ...          | ...       | false
-55         | 2          | Cali     | ...          | NULL      | true
-```
+Data Quality and Quarantine
 
-A new surrogate key is generated when an SCD Type 2 attribute changes.
+Data quality is applied during transformation and through explicit
+business validations.
 
----
+The project includes invoice reconciliation between invoice totals and
+their detail lines:
 
-# Surrogate Keys
+SUM(subtotal_linea)  == facturas.subtotal
+SUM(descuento_linea) == facturas.descuento_total
+SUM(impuesto_linea)  == facturas.impuesto_total
+SUM(total_linea)     == facturas.total
 
-Gold dimensions use warehouse-generated surrogate keys.
+The validation is implemented in:
 
-Examples:
+src/spark/gold/quality/validate_invoices.py
 
-```text
-cliente_sk
-producto_sk
-sucursal_sk
-vendedor_sk
-```
+Detected invalid invoices are recorded in:
 
-Operational IDs are preserved as business/source keys:
+data/quarantine/facturas
 
-```text
-cliente_id
-producto_id
-sucursal_id
-vendedor_id
-```
+This allows quality problems to be investigated instead of silently
+deleting the records.
 
-This separation allows multiple historical versions of the same source entity to exist.
+Incremental Processing
 
-For example:
+The pipeline avoids unnecessarily rebuilding all data:
 
-```text
-cliente_sk | cliente_id | ciudad
------------|------------|----------
-10         | 2          | Medellín
-55         | 2          | Cali
-```
-
-Both rows represent the same operational customer but different historical dimensional versions.
-
----
-
-# Date and Time Dimensions
-
-Date and time are modeled independently.
-
-## dim_fecha
-
-Includes attributes such as:
-
-```text
-fecha_sk
-fecha
-anio
-trimestre
-mes
-nombre_mes
-dia
-dia_semana
-nombre_dia
-es_fin_semana
-```
-
-## dim_hora
-
-Includes:
-
-```text
-hora_sk
-hora
-minuto
-franja_horaria
-```
-
-Separating date and time keeps the dimensions compact and allows independent temporal analysis.
-
----
-
-# Sales Context Dimension
-
-`dim_contexto_venta` is implemented using the **junk dimension** pattern.
-
-It groups small categorical attributes related to the transaction:
-
-```text
-contexto_venta_sk
-metodo_de_pago
-estado
-```
-
-Example:
-
-```text
-contexto_venta_sk | metodo_de_pago   | estado
-------------------|------------------|---------
-1                 | EFECTIVO         | PAGADA
-2                 | TARJETA_DEBITO   | PAGADA
-3                 | TARJETA_CREDITO  | PAGADA
-4                 | EFECTIVO         | CANCELADA
-```
-
-`fact_ventas` stores only `contexto_venta_sk`.
-
----
-
-# Incremental Processing
-
-The platform is designed to avoid unnecessarily reprocessing all available data.
-
-Current behavior:
-
-```text
 Source
   |
-  | incremental
   v
-Bronze
+Bronze     incremental / full reload by source
   |
-  | incremental
   v
-Silver
+Silver     incremental / snapshot comparison
   |
-  | incremental / SCD processing
   v
-Gold
-```
+Gold       incremental + SCD processing
 
-If a pipeline is executed again without new source data, previously processed records are not inserted again.
+The incremental pipeline has also been tested by executing it without
+new source changes to verify that already processed records are not
+unnecessarily inserted again.
 
----
+Apache Airflow Orchestration
 
-# Project Principles
+Airflow orchestrates the complete pipeline. The DAG is located at:
 
-The project follows several Data Engineering principles:
+airflow/dags/supermarket_pipeline.py
 
-- Reproducible infrastructure
-- Incremental processing
-- Idempotent pipeline behavior
-- Separation of raw, clean and analytical layers
-- Historical traceability
-- Dimensional modeling
-- Data quality validation
-- Explicit business rules
-- Version-controlled documentation
-- Reusable transformation logic
-- Separation between orchestration and transformation
+Current execution order:
 
----
+extract_bronze
+      |
+      v
+transform_silver
+      |
+      v
+update_dim_cliente
+      |
+      v
+update_dim_producto
+      |
+      v
+update_dim_sucursal
+      |
+      v
+update_dim_vendedor
+      |
+      v
+update_dim_fecha
+      |
+      v
+update_dim_contexto_venta
+      |
+      v
+validate_invoices
+      |
+      v
+update_fact_ventas
 
-# Repository Structure
+dim_hora is static/precalculated, so it does not require a recurring
+incremental task.
 
-```text
+The DAG is scheduled daily:
+
+0 2 * * *
+
+Timezone:
+
+America/Bogota
+
+catchup=False is configured to avoid automatic historical backfill.
+
+Airflow Spark Connection
+
+The Spark connection is configured through the Airflow UI and is
+intentionally documented because it is not stored as application code in
+the repository.
+
+After Airflow is running, create the following connection:
+
+Admin / Connections
+
+Connection Id:   spark_default
+Connection Type: Spark
+Host:            spark://spark-master
+Port:            7077
+
+The DAG uses:
+
+conn_id="spark_default"
+
+This allows SparkSubmitOperator to submit the Spark applications to
+the configured Spark Master without hardcoding the Master address in
+every task.
+
+Reproducing the Project
+
+The repository is intended to be followed step by step.
+
+1. Clone the repository
+
+git clone <repository-url>
+cd supermarket-data-platform
+
+2. Configure environment variables
+
+Create/configure the .env values required by docker-compose.yml for
+the operational PostgreSQL database and Spark source connection.
+
+Do not commit credentials to Git.
+
+3. Build and start the infrastructure
+
+Docker Desktop / Docker Engine must be running.
+
+docker compose up --build
+
+The Compose environment starts the operational PostgreSQL database,
+Spark Master/Worker, Airflow metadata PostgreSQL database, Airflow
+initialization, webserver and scheduler. A one-shot permissions service
+prepares the shared data directories used by Spark and Airflow.
+
+4. Generate the synthetic source data
+
+On Windows PowerShell, using the project's virtual environment:
+
+.\.venv\Scripts\Activate.ps1
+python .\src\data_generator\generate_data.py
+
+5. Verify the services
+
+Main local interfaces:
+
+Airflow UI:       http://localhost:8080
+Spark Master UI:  http://localhost:8081
+Spark Worker UI:  http://localhost:8082
+
+6. Configure the Airflow Spark connection
+
+Create spark_default using the values documented in the Airflow
+Spark Connection section.
+
+This manual configuration is required for a fresh environment because
+the DAG references that connection.
+
+7. Run the pipeline
+
+Enable the supermarket_pipeline DAG in Airflow.
+
+The DAG can be triggered manually for validation and is also configured
+for daily execution at 02:00 in the America/Bogota timezone.
+
+The pipeline executes:
+
+PostgreSQL
+   -> Bronze
+   -> Silver
+   -> Gold dimensions
+   -> Data Quality
+   -> fact_ventas
+
+8. Validate the execution
+
+Use:
+
+Airflow Grid/Task Logs to inspect task execution.
+
+Spark Master/Worker UI to inspect Spark applications and cluster
+resources.
+
+Bronze, Silver, Gold and Quarantine Delta datasets to inspect
+pipeline output.
+
+Repository Structure
+
 supermarket-data-platform/
 |
+├── airflow/
+│   ├── dags/
+│   │   └── supermarket_pipeline.py
+│   └── logs/
+|
 ├── docker/
-│   └── spark/
+│   ├── spark/
+│   │   └── Dockerfile
+│   └── airflow/
 │       └── Dockerfile
 |
 ├── docs/
 │   └── data-model/
-│       └── esquema_estrella_ventas_vector.svg
+|
+├── sql/
+│   └── tests/
 |
 ├── src/
+│   ├── data_generator/
 │   └── spark/
 │       ├── bronze/
 │       ├── silver/
-│       │   ├── common.py
-│       │   ├── transform_all_tables.py
-│       │   └── transformations/
 │       └── gold/
+│           ├── initial/
+│           ├── incremental/
+│           ├── quality/
+│           └── run_gold_incremental.py
 |
-├── sql/
 ├── data/
+│   ├── bronze/
+│   ├── silver/
+│   ├── gold/
+│   └── quarantine/
+|
 ├── docker-compose.yml
 ├── requirements.txt
 └── README.md
-```
 
-The structure will continue evolving as the Gold and orchestration layers are implemented.
+Project Principles
 
----
+The project currently demonstrates:
 
-# Next Milestone
+Reproducible containerized infrastructure.
 
-The next development milestone is the implementation of the Gold layer.
+Incremental data processing.
 
-Implementation order:
+Separation of raw, clean and analytical layers.
 
-1. `dim_cliente`
-2. `dim_producto`
-3. `dim_sucursal`
-4. `dim_vendedor`
-5. `dim_fecha`
-6. `dim_hora`
-7. `dim_contexto_venta`
-8. Invoice reconciliation and quarantine
-9. `fact_ventas`
-10. Incremental Gold processing
-11. End-to-end validation
+Historical traceability.
 
-After Gold is stable, Apache Airflow will be introduced to orchestrate the complete pipeline.
+Dimensional modeling.
 
----
+Surrogate keys.
 
-## Author
+SCD Type 1 and Type 2.
 
-Data Engineering portfolio project focused on building an end-to-end Lakehouse data platform using PostgreSQL, Apache Spark, PySpark, Delta Lake and Docker.
+Data quality rules and Quarantine.
+
+Spark distributed-processing architecture.
+
+Airflow orchestration and scheduling.
+
+Explicit task dependencies.
+
+Separation between orchestration and transformation.
+
+Git-based version control.
+
+Project Evolution
+
+This project is intentionally iterative. The current pipeline is
+functional end to end, but improvements will continue to be implemented
+and documented as the platform evolves.
+
+The README describes functionality that has actually been implemented.
+Planned improvements are kept separate so the repository can be used
+both as a portfolio project and as a reproducible learning reference.
+
+Author
+
+Data Engineering portfolio project focused on building and understanding
+an end-to-end Lakehouse data platform.
